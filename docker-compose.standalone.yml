@@ -1,0 +1,70 @@
+# Standalone Docker Compose for Devstral OpenHands Deployment
+# This file runs the entire application using the custom Dockerfile
+
+version: '3.8'
+
+services:
+  devstral-deployment:
+    build: .
+    container_name: devstral-openhands-deployment
+    privileged: true  # Required for Docker-in-Docker
+    ports:
+      - "${OPENHANDS_PORT:-12000}:12000"    # OpenHands web interface
+      - "${MODEL_SERVER_PORT:-12001}:12001" # Model API server
+      - "${WEBUI_PORT:-8080}:8080"          # Web UI (Ollama/TextGen)
+      - "${API_PORT:-5000}:5000"            # Additional API port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for DinD
+      - ./models:/app/models                        # Model files
+      - ./workspace:/app/workspace                  # OpenHands workspace
+      - ./logs:/app/logs                           # Application logs
+      - devstral_data:/app/data                    # Persistent data
+    environment:
+      # Deployment Configuration
+      - DEPLOYMENT_TYPE=${DEPLOYMENT_TYPE:-ollama}
+      - MODEL_FILE=${MODEL_FILE:-devstral-model.gguf}
+      - MODEL_NAME=${MODEL_NAME:-devstral}
+      
+      # Performance Settings
+      - CONTEXT_SIZE=${CONTEXT_SIZE:-4096}
+      - THREADS=${THREADS:-8}
+      - BATCH_SIZE=${BATCH_SIZE:-512}
+      - GPU_LAYERS=${GPU_LAYERS:-0}
+      - GPU_ENABLED=${GPU_ENABLED:-false}
+      
+      # Port Configuration
+      - OPENHANDS_PORT=12000
+      - MODEL_SERVER_PORT=12001
+      - WEBUI_PORT=8080
+      - API_PORT=5000
+      
+      # Paths
+      - WORKSPACE_PATH=./workspace
+      - MODELS_PATH=./models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:12000"] 
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  devstral_data:
+
+# Usage Examples:
+#
+# 1. Basic startup with Ollama (default):
+#    docker-compose -f docker-compose.standalone.yml up -d
+#
+# 2. Use Text Generation WebUI:
+#    DEPLOYMENT_TYPE=textgen docker-compose -f docker-compose.standalone.yml up -d
+#
+# 3. Use llama.cpp with GPU:
+#    DEPLOYMENT_TYPE=llamacpp GPU_ENABLED=true GPU_LAYERS=35 docker-compose -f docker-compose.standalone.yml up -d
+#
+# 4. Custom model file:
+#    MODEL_FILE=my-custom-model.gguf docker-compose -f docker-compose.standalone.yml up -d
+#
+# 5. Custom ports:
+#    OPENHANDS_PORT=3000 MODEL_SERVER_PORT=8080 docker-compose -f docker-compose.standalone.yml up -d
