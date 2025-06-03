@@ -8,13 +8,26 @@ A comprehensive repository for deploying the Devstral model with OpenHands for w
 
 ## 🚀 Quick Start
 
-### Automated Setup (Recommended)
+### Docker Deployment (Recommended)
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd devstral-openhands-deployment
 
+# Build and run with default settings (Ollama)
+./build-and-run.sh
+
+# Or with Text Generation WebUI
+./build-and-run.sh -t textgen
+
+# Or with llama.cpp and GPU acceleration
+./build-and-run.sh -t llamacpp -g
+```
+
+### Automated Setup (Traditional)
+
+```bash
 # Run the interactive setup script
 ./scripts/setup.sh
 
@@ -70,6 +83,10 @@ devstral-openhands-deployment/
 ├── README.md                    # This file
 ├── LICENSE                      # MIT License
 ├── .gitignore                  # Git ignore rules
+├── Dockerfile                   # Complete deployment container
+├── docker-compose.standalone.yml # Standalone Docker deployment
+├── build-and-run.sh            # Build and run script
+├── DOCKER_DEPLOYMENT.md        # Docker deployment guide
 ├── ollama-setup/               # Ollama deployment files
 │   ├── README.md
 │   ├── docker-compose.yml
@@ -100,6 +117,21 @@ devstral-openhands-deployment/
 ```
 
 ## ⚙️ Deployment Options
+
+### 🐳 Option 0: Docker Deployment (Recommended)
+
+**Best for**: All users, production, development, easy setup
+
+**Features**:
+- Complete containerized solution
+- Automatic service orchestration
+- Multiple deployment types in one container
+- Easy configuration and management
+
+**Quick Start**:
+```bash
+./build-and-run.sh
+```
 
 ### 🟢 Option 1: Ollama (Recommended for Beginners)
 
@@ -297,6 +329,7 @@ For detailed troubleshooting, see [docs/troubleshooting.md](docs/troubleshooting
 
 ## 📚 Documentation
 
+- **[Docker Deployment Guide](DOCKER_DEPLOYMENT.md)**: Complete Docker deployment instructions
 - **[Deployment Guide](docs/deployment-guide.md)**: Step-by-step deployment instructions
 - **[Troubleshooting Guide](docs/troubleshooting.md)**: Common issues and solutions
 - **[Examples](examples/README.md)**: Ready-to-use deployment examples
