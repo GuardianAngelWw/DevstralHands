@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  llamacpp-server-gpu:
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    container_name: llamacpp-server-gpu
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models:ro
+    command: >
+      --model /models/devstral-model.gguf
+      --host 0.0.0.0
+      --port 8080
+      --ctx-size 8192
+      --threads 4
+      --batch-size 1024
+      --n-gpu-layers 35
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - llamacpp_network
+
+  openhands:
+    image: docker.all-hands.dev/all-hands-ai/openhands:0.40
+    container_name: openhands
+    ports:
+      - "3000:3000"
+    environment:
+      - LLM_API_BASE=http://llamacpp-server-gpu:8080/v1
+      - LLM_MODEL_NAME=devstral
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
+      - SANDBOX_PERSIST_AFTER_START=false
+      - WORKSPACE_MOUNT_PATH=/workspace
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspace:/workspace
+    depends_on:
+      llamacpp-server-gpu:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - llamacpp_network
+
+networks:
+  llamacpp_network:
+    driver: bridge

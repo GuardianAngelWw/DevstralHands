@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./models:/models  # Mount directory containing your GGUF files
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  openhands:
+    image: docker.all-hands.dev/all-hands-ai/openhands:0.40
+    container_name: openhands
+    ports:
+      - "3000:3000"
+    environment:
+      - LLM_API_BASE=http://ollama:11434/v1
+      - LLM_MODEL_NAME=devstral
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
+      - SANDBOX_PERSIST_AFTER_START=false
+      - WORKSPACE_MOUNT_PATH=/workspace
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspace:/workspace
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ollama_network
+
+  # Optional: Web UI for Ollama management
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ollama-webui
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ollama_webui_data:/app/backend/data
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    networks:
+      - ollama_network
+
+networks:
+  ollama_network:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  ollama_webui_data:

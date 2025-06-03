@@ -1,0 +1,117 @@
+version: '3.8'
+
+# Production Setup with Text Generation WebUI
+# Features: Monitoring, logging, health checks, and robust configuration
+# Usage: docker-compose -f examples/production-textgen.yml up -d
+
+services:
+  text-generation-webui:
+    image: oobabooga/text-generation-webui:latest
+    container_name: devstral-textgen
+    ports:
+      - "${WEBUI_PORT:-7860}:7860"
+      - "${API_PORT:-5000}:5000"
+    volumes:
+      - ./models:/app/models:ro
+      - ./text-generation-webui/settings.yaml:/app/settings.yaml:ro
+      - textgen_characters:/app/characters
+      - textgen_presets:/app/presets
+      - textgen_prompts:/app/prompts
+      - textgen_logs:/app/logs
+    environment:
+      - EXTRA_LAUNCH_ARGS=--listen --api --api-port 5000 --settings settings.yaml --verbose
+      - MODEL_FILE=${MODEL_FILE:-devstral-model.gguf}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/model"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  openhands:
+    image: docker.all-hands.dev/all-hands-ai/openhands:0.40
+    container_name: devstral-openhands
+    ports:
+      - "${OPENHANDS_PORT:-3000}:3000"
+    environment:
+      - LLM_API_BASE=http://text-generation-webui:5000/v1
+      - LLM_MODEL_NAME=${MODEL_NAME:-devstral}
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
+      - SANDBOX_PERSIST_AFTER_START=false
+      - WORKSPACE_MOUNT_PATH=/workspace
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKSPACE_PATH:-./workspace}:/workspace
+      - openhands_logs:/app/logs
+    depends_on:
+      text-generation-webui:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: devstral-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: devstral-grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  textgen_characters:
+  textgen_presets:
+  textgen_prompts:
+  textgen_logs:
+  openhands_logs:
+  prometheus_data:
+  grafana_data:
+
+# Production deployment commands:
+# 1. Start core services: docker-compose -f examples/production-textgen.yml up -d
+# 2. Start with monitoring: docker-compose -f examples/production-textgen.yml --profile monitoring up -d
+# 3. View logs: docker-compose -f examples/production-textgen.yml logs -f
+# 4. Scale OpenHands: docker-compose -f examples/production-textgen.yml up -d --scale openhands=3

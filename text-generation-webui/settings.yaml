@@ -1,0 +1,66 @@
+# Text Generation WebUI Settings for Devstral
+
+# Model settings
+model: devstral-model.gguf
+loader: llama.cpp
+
+# Generation parameters
+temperature: 0.7
+top_p: 0.9
+top_k: 40
+repetition_penalty: 1.1
+max_new_tokens: 2048
+do_sample: true
+
+# Chat settings
+mode: chat
+character: Assistant
+instruction_template: ChatML
+
+# API settings
+api: true
+api_port: 5000
+listen: true
+api_streaming_port: 5005
+
+# Extensions
+extensions:
+  - api
+  - openai
+
+# llama.cpp specific settings
+n_ctx: 4096
+n_batch: 512
+threads: 4
+n_gpu_layers: 0  # Set to > 0 if using GPU
+
+# Chat format
+chat_template_str: |
+  {%- for message in messages %}
+      {%- if message['role'] == 'system' %}
+          <|im_start|>system
+          {{ message['content'] }}<|im_end|>
+      {%- elif message['role'] == 'user' %}
+          <|im_start|>user
+          {{ message['content'] }}<|im_end|>
+      {%- elif message['role'] == 'assistant' %}
+          <|im_start|>assistant
+          {{ message['content'] }}<|im_end|>
+      {%- endif %}
+  {%- endfor %}
+  {%- if add_generation_prompt %}
+      <|im_start|>assistant
+  {%- endif %}
+
+# Stop strings
+stop_at_newline: false
+custom_stopping_strings: 
+  - "<|im_end|>"
+  - "<|im_start|>"
+
+# Interface settings
+dark_theme: true
+chat_buttons: true
+default_extensions:
+  - api
+  - openai

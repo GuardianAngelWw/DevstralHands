@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  text-generation-webui:
+    image: oobabooga/text-generation-webui:latest
+    container_name: text-generation-webui
+    ports:
+      - "7860:7860"  # Web interface
+      - "5000:5000"  # API port
+    volumes:
+      - ./models:/app/models
+      - ./characters:/app/characters
+      - ./presets:/app/presets
+      - ./prompts:/app/prompts
+      - ./training:/app/training
+      - ./settings.yaml:/app/settings.yaml
+    environment:
+      - EXTRA_LAUNCH_ARGS=--listen --api --api-port 5000 --settings settings.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/model"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - webui_network
+
+  openhands:
+    image: docker.all-hands.dev/all-hands-ai/openhands:0.40
+    container_name: openhands
+    ports:
+      - "3000:3000"
+    environment:
+      - LLM_API_BASE=http://text-generation-webui:5000/v1
+      - LLM_MODEL_NAME=devstral
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
+      - SANDBOX_PERSIST_AFTER_START=false
+      - WORKSPACE_MOUNT_PATH=/workspace
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspace:/workspace
+    depends_on:
+      text-generation-webui:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - webui_network
+
+networks:
+  webui_network:
+    driver: bridge

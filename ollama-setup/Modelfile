@@ -1,0 +1,24 @@
+# Modelfile for Devstral
+# This file defines how to create a Devstral model in Ollama from a GGUF file
+
+FROM ./devstral-model.gguf
+
+# Set the template for the model
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>
+"""
+
+# Set model parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+
+# Set system message
+SYSTEM """You are Devstral, a helpful AI assistant specialized in software development and coding tasks. You provide accurate, helpful, and detailed responses to programming questions and can assist with code generation, debugging, and technical explanations."""
