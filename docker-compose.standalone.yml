@@ -9,8 +9,8 @@ services:
     container_name: devstral-openhands-deployment
     privileged: true  # Required for Docker-in-Docker
     ports:
-      - "${OPENHANDS_PORT:-12000}:12000"    # OpenHands web interface
-      - "${MODEL_SERVER_PORT:-12001}:12001" # Model API server
+      - "${OPENHANDS_PORT:-12000}:3000"     # OpenHands web interface
+      - "${MODEL_SERVER_PORT:-12001}:11434" # Model API server
       - "${WEBUI_PORT:-8080}:8080"          # Web UI (Ollama/TextGen)
       - "${API_PORT:-5000}:5000"            # Additional API port
     volumes:
@@ -32,9 +32,9 @@ services:
       - GPU_LAYERS=${GPU_LAYERS:-0}
       - GPU_ENABLED=${GPU_ENABLED:-false}
       
-      # Port Configuration
-      - OPENHANDS_PORT=12000
-      - MODEL_SERVER_PORT=12001
+      # Port Configuration (internal ports)
+      - OPENHANDS_PORT=3000
+      - MODEL_SERVER_PORT=11434
       - WEBUI_PORT=8080
       - API_PORT=5000
       
@@ -43,7 +43,7 @@ services:
       - MODELS_PATH=./models
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:12000"] 
+      test: ["CMD", "curl", "-f", "http://localhost:3000"] 
       interval: 30s
       timeout: 10s
       retries: 3
