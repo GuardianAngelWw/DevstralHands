@@ -31,9 +31,9 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /
     && apt-get install -y docker-ce docker-ce-cli containerd.io \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Docker Compose
-RUN curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
-    && chmod +x /usr/local/bin/docker-compose
+# Docker Compose is already installed as a plugin with Docker CE
+# Create a symlink for backward compatibility
+RUN ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
 # Copy repository files
 COPY . .
@@ -52,8 +52,8 @@ ENV CONTEXT_SIZE=4096
 ENV THREADS=8
 ENV BATCH_SIZE=512
 ENV GPU_LAYERS=0
-ENV OPENHANDS_PORT=12000
-ENV MODEL_SERVER_PORT=12001
+ENV OPENHANDS_PORT=3000
+ENV MODEL_SERVER_PORT=11434
 ENV WEBUI_PORT=8080
 ENV API_PORT=5000
 ENV WORKSPACE_PATH=./workspace
@@ -198,18 +198,18 @@ start_services() {
     
     # Pull images
     print_status "Pulling Docker images..."
-    docker-compose pull
+    docker compose -f docker-compose.simple.yml pull
     
     # Start services
     print_status "Starting containers..."
-    docker-compose up -d
+    docker compose -f docker-compose.simple.yml up -d
     
     # Wait for services to be ready
     print_status "Waiting for services to start..."
     sleep 15
     
     # Check service status
-    if docker-compose ps | grep -q "Up"; then
+    if docker compose -f docker-compose.simple.yml ps | grep -q "Up"; then
         print_success "Services started successfully!"
         
         # Additional setup for Ollama
@@ -218,11 +218,11 @@ start_services() {
             sleep 10  # Wait for Ollama to be fully ready
             
             # Copy Modelfile and create model
-            docker cp ./Modelfile $(docker-compose ps -q ollama):/tmp/ 2>/dev/null || true
-            docker exec $(docker-compose ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile 2>/dev/null || {
+            docker cp ./Modelfile $(docker compose -f docker-compose.simple.yml ps -q ollama):/tmp/ 2>/dev/null || true
+            docker exec $(docker compose -f docker-compose.simple.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile 2>/dev/null || {
                 print_warning "Could not automatically create Ollama model."
                 print_status "You may need to manually run:"
-                print_status "docker exec -it \$(docker-compose ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile"
+                print_status "docker exec -it \$(docker compose -f docker-compose.simple.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile"
             }
         fi
         
@@ -243,11 +243,11 @@ start_services() {
                 ;;
         esac
         echo
-        print_status "Logs can be viewed with: docker-compose logs -f"
+        print_status "Logs can be viewed with: docker compose -f docker-compose.simple.yml logs -f"
         
     else
-        print_error "Some services failed to start. Check logs with: docker-compose logs"
-        docker-compose logs
+        print_error "Some services failed to start. Check logs with: docker compose -f docker-compose.simple.yml logs"
+        docker compose -f docker-compose.simple.yml logs
         exit 1
     fi
 }
@@ -255,7 +255,7 @@ start_services() {
 # Function to show logs
 show_logs() {
     print_status "Showing service logs..."
-    docker-compose logs -f
+    docker compose -f docker-compose.simple.yml logs -f
 }
 
 # Main execution
@@ -290,18 +290,18 @@ case "${1:-start}" in
         main
         ;;
     "logs")
-        docker-compose logs -f
+        docker compose -f docker-compose.simple.yml logs -f
         ;;
     "stop")
         print_status "Stopping services..."
-        docker-compose down
+        docker compose -f docker-compose.simple.yml down
         ;;
     "restart")
         print_status "Restarting services..."
-        docker-compose restart
+        docker compose -f docker-compose.simple.yml restart
         ;;
     "status")
-        docker-compose ps
+        docker compose -f docker-compose.simple.yml ps
         ;;
     "shell")
         /bin/bash
@@ -323,8 +323,8 @@ EOF
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
-# Expose ports
-EXPOSE 12000 12001 8080 5000
+# Expose ports (only the main ports we need)
+EXPOSE 3000 11434
 
 # Set entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
