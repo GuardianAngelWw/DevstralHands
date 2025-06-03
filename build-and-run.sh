@@ -220,13 +220,13 @@ run_deployment() {
     export MODEL_SERVER_PORT
     
     # Start the deployment
-    docker-compose -f docker-compose.standalone.yml --env-file .env.docker up -d
+    docker compose -f docker-compose.standalone.yml --env-file .env.docker up -d
     
     if [ $? -eq 0 ]; then
         print_success "Deployment started successfully!"
         echo
         print_status "Services are starting up. This may take a few minutes..."
-        print_status "You can monitor the progress with: docker-compose -f docker-compose.standalone.yml logs -f"
+        print_status "You can monitor the progress with: docker compose -f docker-compose.standalone.yml logs -f"
         echo
         print_success "Once ready, access your services at:"
         echo "  OpenHands: http://localhost:$OPENHANDS_PORT"
@@ -244,8 +244,8 @@ run_deployment() {
                 ;;
         esac
         echo
-        print_status "To stop the deployment: docker-compose -f docker-compose.standalone.yml down"
-        print_status "To view logs: docker-compose -f docker-compose.standalone.yml logs -f"
+        print_status "To stop the deployment: docker compose -f docker-compose.standalone.yml down"
+        print_status "To view logs: docker compose -f docker-compose.standalone.yml logs -f"
     else
         print_error "Failed to start deployment"
         exit 1
@@ -255,7 +255,7 @@ run_deployment() {
 # Function to show status
 show_status() {
     print_status "Checking deployment status..."
-    docker-compose -f docker-compose.standalone.yml ps
+    docker compose -f docker-compose.standalone.yml ps
 }
 
 # Main execution
@@ -284,7 +284,7 @@ main() {
     else
         print_success "Build completed. Image: devstral-openhands:latest"
         print_status "To run the deployment:"
-        print_status "  docker-compose -f docker-compose.standalone.yml --env-file .env.docker up -d"
+        print_status "  docker compose -f docker-compose.standalone.yml --env-file .env.docker up -d"
     fi
 }
 
