@@ -20,7 +20,7 @@ services:
 
   openhands:
     image: docker.all-hands.dev/all-hands-ai/openhands:0.40
-    container_name: openhands
+    container_name: devstral-openhands
     ports:
       - "3000:3000"
     environment:
