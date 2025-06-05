@@ -19,7 +19,7 @@ services:
       retries: 3
 
   openhands:
-    image: docker.all-hands.dev/all-hands-ai/openhands:0.40
+    build: ../openhands-frontend
     container_name: openhands
     ports:
       - "3000:3000"
