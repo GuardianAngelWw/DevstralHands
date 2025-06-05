@@ -1,7 +1,7 @@
 # Modelfile for Devstral
 # This file defines how to create a Devstral model in Ollama from a GGUF file
 
-FROM ./devstral-model.gguf
+FROM /models/devstral-model.gguf
 
 # Set the template for the model
 TEMPLATE """{{ if .System }}<|im_start|>system

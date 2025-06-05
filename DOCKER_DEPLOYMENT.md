@@ -373,3 +373,9 @@ To contribute to the Docker deployment:
 ## 📄 License
 
 This Docker deployment is part of the Devstral OpenHands project and is licensed under the MIT License.
+
+## Frontend Image for Ollama Deployment
+
+When `DEPLOYMENT_TYPE` is set to `ollama` (the default), the system uses the configuration from `examples/quick-start-ollama.yml`. This configuration specifies a pre-built Docker image for the OpenHands frontend service (e.g., `docker.all-hands.dev/all-hands-ai/openhands:0.40`).
+
+The `docker-compose.simple.yml` file contains a definition to build the `openhands` service from a local `./openhands-frontend` directory. However, for the `ollama` deployment type, this local build definition is NOT used by the main `entrypoint.sh` script. Ensure that if you intend to modify the frontend, you should either rebuild the pre-built image and update the tag in `examples/quick-start-ollama.yml`, or adapt the deployment scripts if you require a local build for `ollama` mode.

@@ -198,18 +198,18 @@ start_services() {
     
     # Pull images
     print_status "Pulling Docker images..."
-    docker compose -f docker-compose.simple.yml pull
+    docker compose -f docker-compose.yml pull
     
     # Start services
     print_status "Starting containers..."
-    docker compose -f docker-compose.simple.yml up -d
+    docker compose -f docker-compose.yml up -d
     
     # Wait for services to be ready
     print_status "Waiting for services to start..."
     sleep 15
     
     # Check service status
-    if docker compose -f docker-compose.simple.yml ps | grep -q "Up"; then
+    if docker compose -f docker-compose.yml ps | grep -q "Up"; then
         print_success "Services started successfully!"
         
         # Additional setup for Ollama
@@ -218,11 +218,11 @@ start_services() {
             sleep 10  # Wait for Ollama to be fully ready
             
             # Copy Modelfile and create model
-            docker cp ./Modelfile $(docker compose -f docker-compose.simple.yml ps -q ollama):/tmp/ 2>/dev/null || true
-            docker exec $(docker compose -f docker-compose.simple.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile 2>/dev/null || {
+            docker cp ./Modelfile $(docker compose -f docker-compose.yml ps -q ollama):/tmp/ 2>/dev/null || true
+            docker exec $(docker compose -f docker-compose.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile 2>/dev/null || {
                 print_warning "Could not automatically create Ollama model."
                 print_status "You may need to manually run:"
-                print_status "docker exec -it \$(docker compose -f docker-compose.simple.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile"
+                print_status "docker exec -it \$(docker compose -f docker-compose.yml ps -q ollama) ollama create ${MODEL_NAME} -f /tmp/Modelfile"
             }
         fi
         
@@ -243,11 +243,11 @@ start_services() {
                 ;;
         esac
         echo
-        print_status "Logs can be viewed with: docker compose -f docker-compose.simple.yml logs -f"
+        print_status "Logs can be viewed with: docker compose -f docker-compose.yml logs -f"
         
     else
-        print_error "Some services failed to start. Check logs with: docker compose -f docker-compose.simple.yml logs"
-        docker compose -f docker-compose.simple.yml logs
+        print_error "Some services failed to start. Check logs with: docker compose -f docker-compose.yml logs"
+        docker compose -f docker-compose.yml logs
         exit 1
     fi
 }
@@ -255,7 +255,7 @@ start_services() {
 # Function to show logs
 show_logs() {
     print_status "Showing service logs..."
-    docker compose -f docker-compose.simple.yml logs -f
+    docker compose -f docker-compose.yml logs -f
 }
 
 # Main execution
@@ -290,18 +290,18 @@ case "${1:-start}" in
         main
         ;;
     "logs")
-        docker compose -f docker-compose.simple.yml logs -f
+        docker compose -f docker-compose.yml logs -f
         ;;
     "stop")
         print_status "Stopping services..."
-        docker compose -f docker-compose.simple.yml down
+        docker compose -f docker-compose.yml down
         ;;
     "restart")
         print_status "Restarting services..."
-        docker compose -f docker-compose.simple.yml restart
+        docker compose -f docker-compose.yml restart
         ;;
     "status")
-        docker compose -f docker-compose.simple.yml ps
+        docker compose -f docker-compose.yml ps
         ;;
     "shell")
         /bin/bash
