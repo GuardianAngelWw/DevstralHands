@@ -3,11 +3,11 @@
 set -e
 
 # Colors for output
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -25,12 +25,30 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to start Docker daemon
+# Function to start Docker daemon with appropriate permissions
 start_docker() {
     print_status "Starting Docker daemon..."
 
-    # Start Docker daemon in background
-    dockerd > /tmp/docker.log 2>&1 &
+    # Ensure proper permissions for Docker socket and directories
+    if [ -e /var/run/docker.sock ]; then
+        chmod 666 /var/run/docker.sock
+        print_status "Set permissions on Docker socket"
+    fi
+
+    # Create required directories with proper permissions
+    mkdir -p /var/lib/docker
+    chmod 711 /var/lib/docker
+    
+    # Check if we're running as root, if not try to use sudo for dockerd
+    if [ "$(id -u)" != "0" ]; then
+        print_status "Running as non-root user, using sudo for Docker operations"
+        DOCKER_CMD="sudo dockerd"
+    else
+        DOCKER_CMD="dockerd"
+    fi
+
+    # Start Docker daemon in background with proper settings
+    $DOCKER_CMD --iptables=false --storage-driver=vfs > /tmp/docker.log 2>&1 &
 
     # Wait for Docker to be ready
     for i in {1..30}; do
@@ -66,7 +84,7 @@ BATCH_SIZE=${BATCH_SIZE}
 GPU_LAYERS=${GPU_LAYERS}
 
 # Port Configuration
-OPENHANDS_PORT=${OPENHANDS_PORT}
+OPENHANDIS_PORT=${OPENHANDIS_PORT}
 MODEL_SERVER_PORT=${MODEL_SERVER_PORT}
 WEBUI_PORT=${WEBUI_PORT}
 API_PORT=${API_PORT}
@@ -164,7 +182,7 @@ start_services() {
 
         echo
         print_success "Deployment completed! Access your services at:"
-        echo "  OpenHands: http://localhost:${OPENHANDS_PORT}"
+        echo "  OpenHands: http://localhost:${OPENHANDIS_PORT}"
         case ${DEPLOYMENT_TYPE} in
             "ollama")
                 echo "  Ollama Web UI: http://localhost:${WEBUI_PORT}"
@@ -196,14 +214,14 @@ show_logs() {
 
 # Main execution
 main() {
-    echo "========================================"
+    echo "=================================="
     echo "  Devstral OpenHands Deployment"
-    echo "========================================"
+    echo "=================================="
     echo
 
     print_status "Deployment Type: ${DEPLOYMENT_TYPE}"
     print_status "Model File: ${MODEL_FILE}"
-    print_status "OpenHands Port: ${OPENHANDS_PORT}"
+    print_status "OpenHands Port: ${OPENHANDIS_PORT}"
     print_status "Model Server Port: ${MODEL_SERVER_PORT}"
     echo
 
@@ -248,7 +266,7 @@ case "${1:-start}" in
         echo "Environment variables:"
         echo "  DEPLOYMENT_TYPE: ollama|textgen|llamacpp (default: ollama)"
         echo "  MODEL_FILE: name of the GGUF model file (default: devstral-model.gguf)"
-        echo "  OPENHANDS_PORT: port for OpenHands web interface (default: 12000)"
+        echo "  OPENHANDIS_PORT: port for OpenHands web interface (default: 12000)"
         echo "  MODEL_SERVER_PORT: port for model API server (default: 12001)"
         echo "  GPU_ENABLED: true|false for GPU acceleration (default: false)"
         exit 1
