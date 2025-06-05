@@ -6,19 +6,9 @@ version: '3.8'
 services:
   devstral-deployment:
     build: .
-    container_name: devstral-openhands-deployment
+    container_name: devstral-openhandis-deployment
     privileged: true  # Required for Docker-in-Docker
-    ports:
-      - "${OPENHANDS_PORT:-12000}:3000"     # OpenHands web interface
-      - "${MODEL_SERVER_PORT:-12001}:11434" # Model API server
-      - "${WEBUI_PORT:-8080}:8080"          # Web UI (Ollama/TextGen)
-      - "${API_PORT:-5000}:5000"            # Additional API port
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for DinD
-      - ./models:/app/models                        # Model files
-      - ./workspace:/app/workspace                  # OpenHands workspace
-      - ./logs:/app/logs                           # Application logs
-      - devstral_data:/app/data                    # Persistent data
+    user: root  # Explicitly run as root to avoid permission issues
     environment:
       # Deployment Configuration
       - DEPLOYMENT_TYPE=${DEPLOYMENT_TYPE:-ollama}
@@ -33,7 +23,7 @@ services:
       - GPU_ENABLED=${GPU_ENABLED:-false}
       
       # Port Configuration (internal ports)
-      - OPENHANDS_PORT=3000
+      - OPENHANDIS_PORT=3000
       - MODEL_SERVER_PORT=11434
       - WEBUI_PORT=8080
       - API_PORT=5000
@@ -41,6 +31,17 @@ services:
       # Paths
       - WORKSPACE_PATH=./workspace
       - MODELS_PATH=./models
+    ports:
+      - "${OPENHANDIS_PORT:-12000}:3000"      # OpenHands web interface
+      - "${MODEL_SERVER_PORT:-12001}:11434"   # Model API server
+      - "${WEBUI_PORT:-8080}:8080"            # Web UI (Ollama/TextGen)
+      - "${API_PORT:-5000}:5000"              # Additional API port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for DinD
+      - ./models:/app/models                       # Model files
+      - ./workspace:/app/workspace                 # OpenHands workspace
+      - ./logs:/app/logs                           # Application logs
+      - devstral_data:/app/data                    # Persistent data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"] 
@@ -48,6 +49,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # Improved Docker settings to avoid permission issues
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.disable_ipv6=0
 
 volumes:
   devstral_data:
@@ -67,4 +77,4 @@ volumes:
 #    MODEL_FILE=my-custom-model.gguf docker-compose -f docker-compose.standalone.yml up -d
 #
 # 5. Custom ports:
-#    OPENHANDS_PORT=3000 MODEL_SERVER_PORT=8080 docker-compose -f docker-compose.standalone.yml up -d
+#    OPENHANDIS_PORT=3000 MODEL_SERVER_PORT=8080 docker-compose -f docker-compose.standalone.yml up -d
