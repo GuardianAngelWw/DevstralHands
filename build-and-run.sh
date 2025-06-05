@@ -170,7 +170,7 @@ build_image() {
         BUILD_ARGS="--no-cache"
     fi
     
-    docker build $BUILD_ARGS -t devstral-openhands:latest .
+    sudo docker build $BUILD_ARGS -t devstral-openhands:latest .
     
     if [ $? -eq 0 ]; then
         print_success "Docker image built successfully"
