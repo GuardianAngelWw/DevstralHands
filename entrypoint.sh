@@ -38,6 +38,12 @@ start_docker() {
     # Create required directories with proper permissions
     mkdir -p /var/lib/docker
     chmod 711 /var/lib/docker
+
+    # Disable IPv6 to avoid ip6tables errors
+    if [ -f /proc/sys/net/ipv6/conf/all/disable_ipv6 ]; then
+        echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+        print_status "Disabled IPv6 to avoid ip6tables errors"
+    fi
     
     # Check if we're running as root, if not try to use sudo for dockerd
     if [ "$(id -u)" != "0" ]; then
@@ -47,8 +53,14 @@ start_docker() {
         DOCKER_CMD="dockerd"
     fi
 
-    # Start Docker daemon in background with proper settings
-    $DOCKER_CMD --iptables=false --storage-driver=vfs > /tmp/docker.log 2>&1 &
+    # Start Docker daemon in background with proper settings to avoid permission issues
+    $DOCKER_CMD \
+      --iptables=false \
+      --ipv6=false \
+      --storage-driver=vfs \
+      --bridge=none \
+      --data-root=/var/lib/docker \
+      > /tmp/docker.log 2>&1 &
 
     # Wait for Docker to be ready
     for i in {1..30}; do
@@ -146,9 +158,13 @@ check_model() {
     fi
 }
 
-# Function to start services
+# Function to start services with proper network setup
 start_services() {
     print_status "Starting services..."
+
+    # Create custom bridge network with host networking for better compatibility
+    print_status "Creating Docker network for improved container communication..."
+    docker network create --driver bridge devstral-network 2>/dev/null || true
 
     # Pull images
     print_status "Pulling Docker images..."
@@ -156,7 +172,21 @@ start_services() {
 
     # Start services
     print_status "Starting containers..."
-    docker compose -f docker-compose.yml up -d
+    
+    # Use simplified network mode if regular startup fails
+    if ! docker compose -f docker-compose.yml up -d; then
+        print_warning "Container startup encountered network issues, trying alternative configuration..."
+        
+        # Modify docker-compose to use host network if bridge creation fails
+        sed -i 's/bridge:/host:/g' docker-compose.yml 2>/dev/null || true
+        
+        # Try again with host networking
+        if ! docker compose -f docker-compose.yml up -d; then
+            print_error "Failed to start containers even with alternative network configuration"
+            docker compose -f docker-compose.yml logs
+            exit 1
+        fi
+    fi
 
     # Wait for services to be ready
     print_status "Waiting for services to start..."
