@@ -14,7 +14,7 @@ Error response from daemon: repository public.ecr.aws/open-hands/open-hands not 
 **Solution**: Use the correct image path
 ```bash
 # Correct image path (updated)
-docker pull docker.all-hands.dev/all-hands-ai/openhands:0.40
+docker pull docker.all-hands.dev/all-hands-ai/openhandis:0.40
 
 # Also pull the runtime image
 docker pull docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
@@ -60,7 +60,7 @@ Connection refused to http://ollama:11434
 1. **Check network connectivity**:
    ```bash
    # Test from OpenHands container
-   docker exec -it openhands curl http://ollama:11434/api/tags
+   docker exec -it openhandis curl http://ollama:11434/api/tags
    ```
 
 2. **Verify services are on same network**:
@@ -147,9 +147,11 @@ Error: bind: address already in use
 
 ### 7. Permission Issues
 
-**Problem**: Docker socket permission denied
-```
+**Problem**: Docker socket permission denied or iptables operation not permitted
+```bash
 Permission denied while trying to connect to Docker daemon
+failed to mount overlay: operation not permitted
+Could not fetch rule set generation id: Permission denied (you must be root)
 ```
 
 **Solutions**:
@@ -159,9 +161,30 @@ Permission denied while trying to connect to Docker daemon
    newgrp docker
    ```
 
-2. **Run with sudo** (not recommended for production):
+2. **Set socket permissions** (temporary solution):
+   ```bash
+   sudo chmod 666 /var/run/docker.sock
+   ```
+
+3. **Use non-default storage driver**:
+   ```bash
+   # In entrypoint.sh or when starting Docker
+   dockerd --storage-driver=vfs --iptables=false
+   ```
+
+4. **Run with sudo** (not recommended for production):
    ```bash
    sudo docker-compose up -d
+   ```
+
+5. **Use correct Docker options**:
+   ```yaml
+   # In docker-compose.yml
+   cap_add:
+     - SYS_ADMIN
+     - NET_ADMIN
+   security_opt:
+     - apparmor:unconfined
    ```
 
 ## Debugging Commands
@@ -173,7 +196,7 @@ docker-compose ps
 
 # Check specific service logs
 docker-compose logs -f ollama
-docker-compose logs -f openhands
+docker-compose logs -f openhandis
 
 # Check service health
 docker-compose exec ollama curl http://localhost:11434/api/tags
@@ -210,7 +233,7 @@ docker network ls
 docker network inspect <network_name>
 
 # Test connectivity between containers
-docker exec -it openhands ping ollama
+docker exec -it openhandis ping ollama
 ```
 
 ## Performance Optimization
