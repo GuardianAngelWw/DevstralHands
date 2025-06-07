@@ -246,9 +246,9 @@ show_logs() {
 
 # Main execution
 main() {
-    echo "=================================="
+    echo "==================================="
     echo "  Devstral OpenHands Deployment"
-    echo "=================================="
+    echo "==================================="
     echo
 
     print_status "Deployment Type: ${DEPLOYMENT_TYPE}"
