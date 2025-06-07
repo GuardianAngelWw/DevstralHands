@@ -39,10 +39,12 @@ start_docker() {
     mkdir -p /var/lib/docker
     chmod 711 /var/lib/docker
 
-    # Disable IPv6 to avoid ip6tables errors
+    # Disable IPv6 to avoid ip6tables errors, with read-only filesystem handling
     if [ -f /proc/sys/net/ipv6/conf/all/disable_ipv6 ]; then
-        echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
-        print_status "Disabled IPv6 to avoid ip6tables errors"
+        # Try to disable IPv6, but don't fail if filesystem is read-only
+        echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6 2>/dev/null || {
+            print_warning "Could not disable IPv6 (read-only filesystem). This is OK in containerized environments."
+        }
     fi
     
     # Check if we're running as root, if not try to use sudo for dockerd
@@ -96,7 +98,7 @@ BATCH_SIZE=${BATCH_SIZE}
 GPU_LAYERS=${GPU_LAYERS}
 
 # Port Configuration
-OPENHANDIS_PORT=${OPENHANDIS_PORT}
+OPENHANDS_PORT=${OPENHANDS_PORT}
 MODEL_SERVER_PORT=${MODEL_SERVER_PORT}
 WEBUI_PORT=${WEBUI_PORT}
 API_PORT=${API_PORT}
@@ -212,7 +214,7 @@ start_services() {
 
         echo
         print_success "Deployment completed! Access your services at:"
-        echo "  OpenHands: http://localhost:${OPENHANDIS_PORT}"
+        echo "  OpenHands: http://localhost:${OPENHANDS_PORT}"
         case ${DEPLOYMENT_TYPE} in
             "ollama")
                 echo "  Ollama Web UI: http://localhost:${WEBUI_PORT}"
@@ -251,7 +253,7 @@ main() {
 
     print_status "Deployment Type: ${DEPLOYMENT_TYPE}"
     print_status "Model File: ${MODEL_FILE}"
-    print_status "OpenHands Port: ${OPENHANDIS_PORT}"
+    print_status "OpenHands Port: ${OPENHANDS_PORT}"
     print_status "Model Server Port: ${MODEL_SERVER_PORT}"
     echo
 
@@ -296,7 +298,7 @@ case "${1:-start}" in
         echo "Environment variables:"
         echo "  DEPLOYMENT_TYPE: ollama|textgen|llamacpp (default: ollama)"
         echo "  MODEL_FILE: name of the GGUF model file (default: devstral-model.gguf)"
-        echo "  OPENHANDIS_PORT: port for OpenHands web interface (default: 12000)"
+        echo "  OPENHANDS_PORT: port for OpenHands web interface (default: 12000)"
         echo "  MODEL_SERVER_PORT: port for model API server (default: 12001)"
         echo "  GPU_ENABLED: true|false for GPU acceleration (default: false)"
         exit 1
