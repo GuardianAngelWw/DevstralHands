@@ -32,7 +32,7 @@ services:
       - "3000:3000"
     environment:
       - LLM_API_BASE=http://text-generation-webui:5000/v1
-      - LLM_MODEL_NAME=devstral
+      - LLM_MODEL_NAME=<your_model_name>
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
       - SANDBOX_PERSIST_AFTER_START=false
       - WORKSPACE_MOUNT_PATH=/workspace
