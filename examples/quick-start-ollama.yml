@@ -32,6 +32,12 @@ services:
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.40-nikolaik
       - SANDBOX_PERSIST_AFTER_START=false
       - WORKSPACE_MOUNT_PATH=/workspace
+      # Added environment variables to solve API key and model prompt issues
+      - LLM_API_KEY=sk-devstral-integration  # Provide a default API key to skip the prompt
+      - SKIP_API_KEY_VALIDATION=true  # Skip API key validation
+      - AUTO_CONNECT_MODEL=true  # Automatically connect to the model without prompting
+      - DEFAULT_MODEL=devstral  # Set default model to use
+      - DIRECT_MODEL_INTEGRATION=true  # Enable direct model integration
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${WORKSPACE_PATH:-./workspace}:/workspace
